@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String       @id @default(uuid())
+  fullName     String       @map("full_name")
+  email        String       @unique
+  passwordHash String       @map("password_hash")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  savedOffers  SavedOffer[]
+
+  @@map("users")
+}
+
+model Offer {
+  id           String       @id @default(uuid())
+  title        String
+  description  String
+  type         String
+  institution  String
+  municipality String
+  modality     String
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  savedBy      SavedOffer[]
+
+  @@index([type])
+  @@index([municipality])
+  @@index([createdAt])
+  @@map("offers")
+}
+
+model SavedOffer {
+  userId    String   @map("user_id")
+  offerId   String   @map("offer_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  offer     Offer    @relation(fields: [offerId], references: [id], onDelete: Cascade)
+
+  @@id([userId, offerId])
+  @@index([offerId])
+  @@map("saved_offers")
+}

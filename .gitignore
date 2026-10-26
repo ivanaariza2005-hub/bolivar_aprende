@@ -1,0 +1,41 @@
+# IDEs
+.idea/
+.vscode/
+
+# Dependencias de Node
+node_modules/
+
+# Registros y temporales
+*.log
+npm-debug.log*
+coverage/
+
+# Variables de entorno
+.env
+.env.local
+.env.*.local
+
+# Base de datos SQLite local
+backend/prisma/*.db
+backend/prisma/*.db-journal
+
+# Flutter y Dart
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/build/
+mobile/.packages
+mobile/android/.gradle/
+mobile/android/local.properties
+mobile/android/.idea/
+mobile/ios/Pods/
+mobile/ios/.symlinks/
+mobile/ios/Flutter/Flutter.framework
+mobile/ios/Flutter/Flutter.podspec
+mobile/.idea/
+mobile/.vscode/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
