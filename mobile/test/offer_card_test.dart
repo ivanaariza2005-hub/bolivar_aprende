@@ -15,6 +15,7 @@ Offer buildOffer({bool isSaved = false}) => Offer(
       institution: 'Agrosur del Bolívar',
       municipality: 'El Carmen de Bolívar',
       modality: OfferModality.onsite,
+      ownerId: 'd0000000-0000-4000-8000-000000000001',
       isSaved: isSaved,
       createdAt: DateTime(2026, 10, 20),
       updatedAt: DateTime(2026, 10, 20),

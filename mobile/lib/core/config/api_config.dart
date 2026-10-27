@@ -6,6 +6,8 @@ class ApiConfig {
     defaultValue: 'http://10.0.2.2:3000/api',
   );
 
-  static const Duration connectTimeout = Duration(seconds: 10);
-  static const Duration receiveTimeout = Duration(seconds: 15);
+  // Render Free duerme el servicio tras 15 min sin trafico y el primer
+  // request tras el cold start puede tardar 30-60 s.
+  static const Duration connectTimeout = Duration(seconds: 30);
+  static const Duration receiveTimeout = Duration(seconds: 30);
 }

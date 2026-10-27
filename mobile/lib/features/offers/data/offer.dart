@@ -9,6 +9,7 @@ class Offer {
     required this.institution,
     required this.municipality,
     required this.modality,
+    required this.ownerId,
     required this.isSaved,
     required this.createdAt,
     required this.updatedAt,
@@ -21,6 +22,7 @@ class Offer {
   final String institution;
   final String municipality;
   final OfferModality modality;
+  final String ownerId;
   final bool isSaved;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -33,6 +35,7 @@ class Offer {
         institution: institution,
         municipality: municipality,
         modality: modality,
+        ownerId: ownerId,
         isSaved: isSaved ?? this.isSaved,
         createdAt: createdAt,
         updatedAt: updatedAt,
@@ -46,6 +49,7 @@ class Offer {
         institution: json['institution'] as String,
         municipality: json['municipality'] as String,
         modality: OfferModality.fromApi(json['modality'] as String),
+        ownerId: json['ownerId'] as String,
         isSaved: json['isSaved'] as bool? ?? false,
         createdAt: DateTime.parse(json['createdAt'] as String).toLocal(),
         updatedAt: DateTime.parse(json['updatedAt'] as String).toLocal(),

@@ -1,8 +1,23 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import 'dotenv/config';
 
-const rootDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+// Las pruebas usan un esquema dedicado dentro de la misma base PostgreSQL,
+// de modo que no tocan los datos de `public`.
+const testSchema = 'test';
 
-export const testDatabasePath = path.join(rootDirectory, 'prisma', 'test.db');
+const withTestSchema = (rawUrl) => {
+  const url = new URL(rawUrl);
+  url.searchParams.set('schema', testSchema);
+  return url.toString();
+};
 
-export const testDatabaseUrl = `file:${testDatabasePath.replace(/\\/g, '/')}`;
+const baseUrl = process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL;
+
+if (!baseUrl) {
+  throw new Error(
+    'Falta DATABASE_URL (o TEST_DATABASE_URL) para ejecutar las pruebas. Copia .env.example a .env.'
+  );
+}
+
+export const testDatabaseSchema = testSchema;
+
+export const testDatabaseUrl = withTestSchema(baseUrl);

@@ -217,8 +217,8 @@ const main = async () => {
 
     await prisma.offer.upsert({
       where: { id: offer.id },
-      create: { ...offer, createdAt, updatedAt: createdAt },
-      update: { ...offer, updatedAt: createdAt },
+      create: { ...offer, ownerId: user.id, createdAt, updatedAt: createdAt },
+      update: { ...offer, ownerId: user.id, updatedAt: createdAt },
     });
   }
 

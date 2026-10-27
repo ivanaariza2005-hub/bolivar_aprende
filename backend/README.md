@@ -6,7 +6,7 @@ API REST en Node.js + Express para la gestión de ofertas laborales y académica
 
 - Node.js 20 o superior.
 - npm 9 o superior.
-- No requiere un servidor de base de datos: la v1 usa SQLite a través de Prisma.
+- Una base de datos PostgreSQL. El proyecto usa Supabase, pero cualquier PostgreSQL sirve.
 
 ## Instalación
 
@@ -30,7 +30,7 @@ Edita `.env` y define al menos un `JWT_SECRET` de 32 caracteres o más.
 | --- | --- | --- | --- |
 | `NODE_ENV` | No | `development` | `development`, `test` o `production` |
 | `PORT` | No | `3000` | Puerto HTTP |
-| `DATABASE_URL` | Sí | `file:./dev.db` | Ruta SQLite relativa al directorio `prisma` |
+| `DATABASE_URL` | Sí | - | Cadena de conexión PostgreSQL (Session pooler de Supabase) |
 | `JWT_SECRET` | Sí | - | Secreto de firma, mínimo 32 caracteres |
 | `JWT_EXPIRES_IN` | No | `7d` | Vigencia del token |
 | `CORS_ORIGINS` | No | `*` | Orígenes permitidos separados por coma |
@@ -42,7 +42,7 @@ La aplicación valida la configuración al arrancar y falla con un mensaje claro
 
 ```bash
 npm run db:generate   # genera el cliente Prisma
-npm run db:migrate    # aplica las migraciones (crea dev.db)
+npm run db:migrate    # aplica las migraciones en PostgreSQL
 npm run db:seed       # carga 18 ofertas y el usuario de demostración
 npm run dev           # servidor con recarga automática en http://localhost:3000
 ```
@@ -164,7 +164,7 @@ npm test
 
 - Jest en modo ESM (`NODE_OPTIONS=--experimental-vm-modules`).
 - Supertest contra la aplicación Express sin abrir puerto.
-- Base SQLite aislada en `prisma/test.db`, recreada antes de cada ejecución.
+- Esquema `test` dentro de la misma base PostgreSQL, recreado antes de cada ejecución.
 - 36 pruebas en tres suites: autenticación, ofertas y ofertas guardadas.
 
 Resultado de referencia en este entorno: 3 suites y 36 pruebas aprobadas.
@@ -174,12 +174,12 @@ Resultado de referencia en este entorno: 3 suites y 36 pruebas aprobadas.
 ```
 backend/
   prisma/
-    schema.prisma          modelo de datos SQLite
+    schema.prisma          modelo de datos PostgreSQL
     seed.js                semilla de 18 ofertas y usuario demo
-    migrations/            DDL versionado con restricciones CHECK
+    migrations/            DDL versionado con restricciones CHECK, RLS y triggers
   scripts/
-    prepare-test-db.js     recrea la base de prueba
-    testDatabase.js        rutas de la base de prueba
+    prepare-test-db.js     recrea el esquema de prueba
+    testDatabase.js        resuelve la URL del esquema de prueba
   src/
     app.js                 composición de Express
     server.js              arranque y cierre ordenado
@@ -203,11 +203,84 @@ backend/
 - Registro de errores con pino y redacción de cabeceras sensibles.
 - Límite de intentos de autenticación: 20 por ventana de 15 minutos.
 
-## Cambiar a PostgreSQL
+## Base de datos (Supabase)
 
-1. Cambia `provider = "sqlite"` por `"postgresql"` en `prisma/schema.prisma`.
-2. Actualiza `DATABASE_URL` con la cadena de conexión.
-3. Borra `prisma/migrations` y genera una migración inicial nueva con `npx prisma migrate dev --name init`.
-4. Ajusta las restricciones `CHECK` de municipios si usas otro catálogo.
+El esquema vive en PostgreSQL, en el proyecto `ymtfgdybmyquqjpsncqc` (región `us-east-1`).
+
+1. Copia la cadena de conexión desde **Project Settings → Database → Connection string → Session pooler**.
+2. Pégala en `DATABASE_URL` dentro de `.env`. Usa el pooler (`aws-0-us-east-1.pooler.supabase.com`): la conexión directa `db.<ref>.supabase.co` solo resuelve IPv6.
+3. Aplica el esquema y los datos:
+
+```bash
+npm run db:migrate
+npm run db:seed
+```
+
+Notas:
+
+- Las tablas `users`, `offers` y `saved_offers` viven en el esquema `public`.
+- Tienen `CHECK` de enums y de municipios, trigger de `updated_at` y Row Level Security activo. Solo `offers` es legible con las claves públicas; el resto queda denegado por defecto.
+- Las pruebas usan el esquema `test` de la misma base (ver `scripts/testDatabase.js`), así que no tocan los datos reales.
+- El backend se conecta con el rol `postgres`, que omite RLS. No expongas la `DATABASE_URL` al cliente.
 
 Los repositorios, servicios y la aplicación móvil no requieren cambios.
+
+## Despliegue en Render
+
+El repositorio incluye `render.yaml` en la raíz, así que la vía rápida es
+**New → Blueprint** y seleccionar el repo. Render crea el servicio con estos
+valores:
+
+| Ajuste | Valor |
+| --- | --- |
+| Root Directory | `backend` |
+| Build Command | `npm ci --include=dev` |
+| Start Command | `npm run start:deploy` |
+| Health Check Path | `/api/health` |
+| Region | Virginia (`us-east-1`, junto a Supabase) |
+
+`start:deploy` ejecuta `prisma migrate deploy` antes de arrancar el servidor.
+En el plan free no existe pre-deploy command, por eso las migraciones van en el
+arranque. `--include=dev` es necesario porque con `NODE_ENV=production` npm
+omite las devDependencies y fallaría `postinstall: prisma generate`.
+
+### Variables de entorno
+
+| Variable | Valor |
+| --- | --- |
+| `NODE_ENV` | `production` |
+| `DATABASE_URL` | Session pooler con `&connection_limit=5&pool_timeout=20` |
+| `JWT_SECRET` | Generado por Render (`generateValue`) o `openssl rand -base64 48` |
+| `JWT_EXPIRES_IN` | `7d` |
+| `CORS_ORIGINS` | `*` mientras solo haya app móvil |
+| `LOG_LEVEL` | `info` |
+
+`PORT` lo inyecta Render; no hay que definirlo.
+
+### Limitaciones del plan free
+
+- El servicio se suspende a los **15 minutos** sin tráfico. El primer request
+  después tarda entre 30 y 60 segundos (cold start).
+- La app móvil ya usa timeouts de 30 s para tolerarlo. Si aun así falla, añade
+  un ping cada 10 minutos (UptimeRobot, cron-job.org) o pasa a plan Starter.
+- Supabase free también pausa el proyecto a los 7 días sin actividad.
+
+### Verificación
+
+```bash
+curl https://<servicio>.onrender.com/api/health
+# {"status":"ok","database":"connected"}
+
+curl -X POST https://<servicio>.onrender.com/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"demo@bolivaraprende.co","password":"Demo12345"}'
+```
+
+### App móvil
+
+Compila apuntando a la URL pública (HTTPS obligatorio en Android desde API 28):
+
+```bash
+flutter build apk --dart-define=API_BASE_URL=https://<servicio>.onrender.com/api
+```
+

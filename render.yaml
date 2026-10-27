@@ -1,0 +1,30 @@
+# Blueprint de Render para la API.
+# Uso: Render Dashboard > New > Blueprint > selecciona este repositorio.
+# Si prefieres crear el servicio a mano, replica estos valores en el dashboard.
+services:
+  - type: web
+    name: bolivar-aprende-api
+    runtime: node
+    plan: free
+    region: virginia
+    rootDir: backend
+    # --include=dev es obligatorio: con NODE_ENV=production npm omite las
+    # devDependencies y fallaria el postinstall "prisma generate".
+    buildCommand: npm ci --include=dev
+    # En el plan free no hay pre-deploy command, asi que las migraciones
+    # corren durante el arranque.
+    startCommand: npm run start:deploy
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: LOG_LEVEL
+        value: info

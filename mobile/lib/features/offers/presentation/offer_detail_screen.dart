@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/theme/app_colors.dart';
@@ -7,6 +8,7 @@ import '../../../core/widgets/app_snackbar.dart';
 import '../../../core/widgets/app_tag.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../auth/presentation/auth_provider.dart';
 import '../data/offer.dart';
 import 'offer_form_screen.dart';
 import 'offers_provider.dart';
@@ -117,12 +119,16 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    // Solo el dueno de la oferta puede editarla o eliminarla; la API responde
+    // 404 a cualquier otro usuario.
+    final canManage = context.read<AuthProvider>().user?.id == _offer.ownerId;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detalle'),
         actions: <Widget>[
-          PopupMenuButton<String>(
+          if (canManage)
+            PopupMenuButton<String>(
             tooltip: 'Opciones de la oferta',
             icon: const Icon(Icons.more_vert),
             onSelected: _selectAction,
@@ -210,12 +216,14 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
               isLoading: _isSaving,
               onPressed: _toggleSaved,
             ),
-            const SizedBox(height: AppSpacing.sm),
-            OutlinedButton.icon(
-              onPressed: _isSaving ? null : _edit,
-              icon: const Icon(Icons.edit_outlined, size: 20),
-              label: const Text('Editar oferta'),
-            ),
+            if (canManage) ...[
+              const SizedBox(height: AppSpacing.sm),
+              OutlinedButton.icon(
+                onPressed: _isSaving ? null : _edit,
+                icon: const Icon(Icons.edit_outlined, size: 20),
+                label: const Text('Editar oferta'),
+              ),
+            ],
           ],
         ),
       ),

@@ -14,6 +14,13 @@ const allowedOrigins = env.corsOrigins.includes('*') ? true : env.corsOrigins;
 export const createApp = () => {
   const app = express();
 
+  // Detrás del proxy del PaaS (Render) el cliente real viene en X-Forwarded-For.
+  // Sin esto, req.ip es la IP del balanceador y el rate limit se comparte entre
+  // todos los usuarios.
+  if (env.isProduction) {
+    app.set('trust proxy', 1);
+  }
+
   app.disable('x-powered-by');
   app.use(helmet());
   app.use(cors({ origin: allowedOrigins }));

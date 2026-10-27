@@ -19,9 +19,9 @@ const buildWhere = ({ filters, userId }) => {
 
   if (filters.q) {
     where.OR = [
-      { title: { contains: filters.q } },
-      { description: { contains: filters.q } },
-      { institution: { contains: filters.q } },
+      { title: { contains: filters.q, mode: 'insensitive' } },
+      { description: { contains: filters.q, mode: 'insensitive' } },
+      { institution: { contains: filters.q, mode: 'insensitive' } },
     ];
   }
 
@@ -43,18 +43,20 @@ export const findById = (id, userId) =>
 
 export const create = (data, userId) =>
   prisma.offer.create({
-    data,
+    data: { ...data, ownerId: userId },
     include: { savedBy: savedByUser(userId) },
   });
 
+// El filtro por ownerId hace que Prisma lance P2025 si la oferta no es del
+// usuario, de modo que nunca se pueda editar ni borrar la de otro.
 export const update = (id, data, userId) =>
   prisma.offer.update({
-    where: { id },
+    where: { id, ownerId: userId },
     data,
     include: { savedBy: savedByUser(userId) },
   });
 
-export const remove = (id) => prisma.offer.delete({ where: { id } });
+export const remove = (id, userId) => prisma.offer.delete({ where: { id, ownerId: userId } });
 
 export const exists = async (id) => {
   const offer = await prisma.offer.findUnique({ where: { id }, select: { id: true } });

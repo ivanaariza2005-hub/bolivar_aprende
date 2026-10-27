@@ -9,6 +9,7 @@ export const toOfferDto = (offer) => ({
   institution: offer.institution,
   municipality: offer.municipality,
   modality: offer.modality,
+  ownerId: offer.ownerId,
   isSaved: Array.isArray(offer.savedBy) ? offer.savedBy.length > 0 : false,
   createdAt: offer.createdAt.toISOString(),
   updatedAt: offer.updatedAt.toISOString(),
@@ -37,8 +38,8 @@ export const create = async (payload, userId) => {
 export const update = async (id, payload, userId) => {
   const existing = await offerRepository.findById(id, userId);
 
-  if (!existing) {
-    throw notFoundError('La oferta no existe o fue eliminada.');
+  if (!existing || existing.ownerId !== userId) {
+    throw notFoundError('La oferta no existe o no tienes permiso para modificarla.');
   }
 
   const offer = await offerRepository.update(id, payload, userId);
@@ -48,9 +49,9 @@ export const update = async (id, payload, userId) => {
 export const remove = async (id, userId) => {
   const existing = await offerRepository.findById(id, userId);
 
-  if (!existing) {
-    throw notFoundError('La oferta no existe o fue eliminada.');
+  if (!existing || existing.ownerId !== userId) {
+    throw notFoundError('La oferta no existe o no tienes permiso para eliminarla.');
   }
 
-  await offerRepository.remove(id);
+  await offerRepository.remove(id, userId);
 };

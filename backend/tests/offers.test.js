@@ -45,6 +45,7 @@ describe('POST /api/offers', () => {
       isSaved: false,
     });
     expect(typeof response.body.data.id).toBe('string');
+    expect(typeof response.body.data.ownerId).toBe('string');
   });
 
   it('exige autenticacion', async () => {
@@ -222,6 +223,25 @@ describe('PUT /api/offers/:id', () => {
 
     expect(response.status).toBe(404);
   });
+
+  it('impide que otro usuario edite una oferta ajena', async () => {
+    const created = await api
+      .post('/api/offers')
+      .set('Authorization', `Bearer ${token}`)
+      .send(sampleOffer());
+
+    const response = await api
+      .put(`/api/offers/${created.body.data.id}`)
+      .set('Authorization', `Bearer ${otherToken}`)
+      .send(sampleOffer({ title: 'Oferta secuestrada' }));
+
+    expect(response.status).toBe(404);
+
+    const detail = await api
+      .get(`/api/offers/${created.body.data.id}`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(detail.body.data.title).toBe(sampleOffer().title);
+  });
 });
 
 describe('DELETE /api/offers/:id', () => {
@@ -261,5 +281,23 @@ describe('DELETE /api/offers/:id', () => {
 
     const response = await api.get('/api/offers').set('Authorization', `Bearer ${otherToken}`);
     expect(response.status).toBe(200);
+  });
+
+  it('impide que otro usuario elimine una oferta ajena', async () => {
+    const created = await api
+      .post('/api/offers')
+      .set('Authorization', `Bearer ${token}`)
+      .send(sampleOffer());
+
+    const response = await api
+      .delete(`/api/offers/${created.body.data.id}`)
+      .set('Authorization', `Bearer ${otherToken}`);
+
+    expect(response.status).toBe(404);
+
+    const detail = await api
+      .get(`/api/offers/${created.body.data.id}`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(detail.status).toBe(200);
   });
 });
