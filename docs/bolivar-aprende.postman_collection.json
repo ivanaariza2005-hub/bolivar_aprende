@@ -1,0 +1,365 @@
+{
+  "info": {
+    "name": "Bolívar Aprende y Trabaja — API",
+    "description": "Colección para probar la API desplegada en Render.\n\nFlujo recomendado:\n1. Ejecutar «Estado → Health» para despertar el servicio (el plan gratuito lo suspende a los 15 minutos sin tráfico).\n2. Ejecutar «Autenticación → Iniciar sesión». El token se guarda solo en la variable `token`.\n3. Ejecutar «Ofertas → Crear oferta». El id se guarda solo en la variable `offerId`.\n4. El resto de peticiones ya funcionan sin editar nada.\n\nCuenta de prueba: demo@bolivaraprende.co / Demo12345\n\nGuía completa: docs/guia-pruebas-api.md",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://bolivar-aprende-api.onrender.com/api"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "offerId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Estado",
+      "item": [
+        {
+          "name": "Health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Servicio y base de datos disponibles', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().database).to.eql('connected');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/health",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Autenticación",
+      "item": [
+        {
+          "name": "Iniciar sesión",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login correcto', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.collectionVariables.set('token', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"demo@bolivaraprende.co\",\n  \"password\": \"Demo12345\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Registrar cuenta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Cuenta creada', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('token', pm.response.json().token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Laura Pineda\",\n  \"email\": \"laura.pineda@example.com\",\n  \"password\": \"Bolivar2026\",\n  \"passwordConfirmation\": \"Bolivar2026\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/auth/register",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Mi perfil",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ofertas",
+      "item": [
+        {
+          "name": "Listar todas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Listado correcto', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json()).to.have.property('total');",
+                  "});",
+                  "const ofertas = pm.response.json().data;",
+                  "if (ofertas && ofertas.length > 0) {",
+                  "  pm.collectionVariables.set('offerId', ofertas[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/offers"
+          }
+        },
+        {
+          "name": "Filtrar por tipo y municipio",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/offers?type=academic&municipality=Cartagena"
+          }
+        },
+        {
+          "name": "Buscar por texto",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/offers?q=sena"
+          }
+        },
+        {
+          "name": "Detalle",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/offers/{{offerId}}"
+          }
+        },
+        {
+          "name": "Crear oferta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Oferta creada', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "pm.collectionVariables.set('offerId', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Instructor de logística portuaria\",\n  \"description\": \"Formación técnica de 120 horas en operaciones portuarias y cadena de suministro para jóvenes de Cartagena.\",\n  \"type\": \"academic\",\n  \"institution\": \"SENA\",\n  \"municipality\": \"Cartagena\",\n  \"modality\": \"hybrid\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/offers"
+          }
+        },
+        {
+          "name": "Editar oferta",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Instructor de logística portuaria y aduanas\",\n  \"description\": \"Formación técnica de 120 horas en operaciones portuarias, cadena de suministro y trámites de aduana.\",\n  \"type\": \"academic\",\n  \"institution\": \"SENA\",\n  \"municipality\": \"Cartagena\",\n  \"modality\": \"remote\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/offers/{{offerId}}"
+          }
+        },
+        {
+          "name": "Eliminar oferta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Oferta eliminada', function () {",
+                  "  pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/offers/{{offerId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Guardadas",
+      "item": [
+        {
+          "name": "Guardar oferta",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/offers/{{offerId}}/save"
+          }
+        },
+        {
+          "name": "Quitar de guardadas",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/offers/{{offerId}}/save"
+          }
+        },
+        {
+          "name": "Listar guardadas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/offers?saved=true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Casos de error",
+      "item": [
+        {
+          "name": "Sin token (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/offers",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Municipio inválido (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Oferta con municipio inválido\",\n  \"description\": \"Esta oferta debe fallar porque Bogotá no pertenece al departamento de Bolívar.\",\n  \"type\": \"job\",\n  \"institution\": \"Prueba\",\n  \"municipality\": \"Bogota\",\n  \"modality\": \"onsite\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/offers"
+          }
+        },
+        {
+          "name": "Oferta inexistente (404)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/offers/11111111-1111-4111-8111-111111111111"
+          }
+        }
+      ]
+    }
+  ]
+}

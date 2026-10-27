@@ -4,8 +4,19 @@ Aplicación móvil para consultar y publicar ofertas laborales y académicas en 
 
 El repositorio contiene dos entregables:
 
-- `backend/`: API REST en Node.js + Express con SQLite (Prisma), autenticación JWT y CRUD completo de ofertas.
+- `backend/`: API REST en Node.js + Express con PostgreSQL en Supabase (Prisma), autenticación JWT y CRUD completo de ofertas.
 - `mobile/`: aplicación Flutter con tema oscuro minimalista, búsqueda, filtros, ofertas guardadas y perfil.
+
+## API desplegada
+
+| Dato | Valor |
+| --- | --- |
+| URL base | `https://bolivar-aprende-api.onrender.com/api` |
+| Estado | `GET https://bolivar-aprende-api.onrender.com/api/health` |
+| Cuenta de prueba | `demo@bolivaraprende.co` / `Demo12345` |
+| Hosting | Render (plan gratuito, se suspende a los 15 minutos sin tráfico) |
+
+Para probar todas las rutas sin instalar nada: [`docs/guia-pruebas-api.md`](docs/guia-pruebas-api.md). Incluye una colección de Postman lista para importar en [`docs/bolivar-aprende.postman_collection.json`](docs/bolivar-aprende.postman_collection.json).
 
 Documentación de referencia: [`docs/fase-1-arquitectura.md`](docs/fase-1-arquitectura.md).
 Lista de verificación contra los requisitos: [`docs/verificacion-requisitos.md`](docs/verificacion-requisitos.md).
@@ -98,7 +109,7 @@ Un APK compilado sin `--dart-define` apunta a `10.0.2.2`, que solo funciona en e
 
 ## Pruebas
 
-Backend (36 pruebas, ejecutadas en este entorno):
+Backend (38 pruebas, ejecutadas en este entorno):
 
 ```bash
 cd backend
@@ -117,7 +128,8 @@ Resultado: `flutter analyze` sin hallazgos y 17 pruebas aprobadas. Las pruebas m
 
 ## Decisiones relevantes
 
-- **SQLite en la v1.** El entorno de desarrollo no tiene Docker ni PostgreSQL, y el enunciado permitía SQLite. La capa de datos está aislada con Prisma y repositorios; el procedimiento de migración a PostgreSQL está documentado en `backend/README.md`.
+- **PostgreSQL en Supabase.** El esquema se migró de SQLite a PostgreSQL (proyecto `ymtfgdybmyquqjpsncqc`, región `us-east-1`) conservando el modelo de datos. Prisma es la única fuente de verdad de las migraciones y la conexión usa el Session pooler porque la conexión directa solo resuelve IPv6.
+- **Despliegue en Render.** El archivo `render.yaml` define el servicio; las migraciones corren al arrancar (`npm run start:deploy`) porque el plan gratuito no tiene pre-deploy command. La cadena de proxies de Render tiene tres saltos (`trust proxy`), lo que permite que el rate limit use la IP real del cliente.
 - **JWT + bcrypt.** Token HS256 con expiración de 7 días y contraseñas con 12 rondas de bcrypt.
 - **Provider + ChangeNotifier.** El `OffersProvider` se crea por pantalla de listado y se pasa a las rutas de detalle y formulario para refrescar la lista correcta.
 - **Diseño oscuro minimalista.** Fondo `#0F0F12`, superficie `#1A1A1F`, acento `#4F8EF7`, radios de hasta 12 px, sin sombras ni degradados, iconografía Material y sin emojis.
